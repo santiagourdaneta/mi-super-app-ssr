@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Item</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="hero is-info">
+        <div class="hero-body has-text-centered">
+            <p class="title">Editar Item</p>
+        </div>
+    </header>
+
+    <main class="container is-max-desktop my-5">
+        <form id="editItemForm" action="/items/update-ajax/<%= item.id %>" method="POST" class="box">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="field">
+                <label class="label">Nombre</label>
+                <div class="control">
+                    <input class="input" type="text" name="name" value="<%= item.name %>" required maxlength="100">
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">Descripción</label>
+                <div class="control">
+                    <textarea class="textarea" name="description" maxlength="255"><%= item.description %></textarea>
+                </div>
+            </div>
+            <div class="field is-grouped">
+                <div class="control">
+                    <button class="button is-primary" type="submit">Actualizar</button>
+                </div>
+                <div class="control">
+                    <a href="/" class="button is-light">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </main>
+    
+    <script>
+        const editItemForm = document.querySelector('#editItemForm');
+
+        editItemForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Detiene la recarga de la página
+
+            const formData = new FormData(editItemForm);
+            const data = Object.fromEntries(formData.entries());
+            const itemId = editItemForm.getAttribute('action').split('/').pop();
+
+            try {
+                const response = await fetch(`/items/update-ajax/${itemId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': data._csrf
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+
+                if (result.success) {
+                    window.location.href = '/'; // Redirige al listado de ítems
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Ocurrió un error al actualizar el item.');
+            }
+        });
+    </script>
+</body>
+</html>

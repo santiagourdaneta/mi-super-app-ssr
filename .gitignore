@@ -1,0 +1,10 @@
+# Dependencias de Node
+/node_modules
+
+# Archivos de la base de datos
+*.sqlite
+*.sqlite-journal
+
+# Logs y datos de depuración
+npm-debug.log*
+.DS_Store

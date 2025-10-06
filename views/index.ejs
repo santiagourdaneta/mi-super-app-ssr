@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Super App</title>
+    <meta property="og:title" content="Mi Super App de Items">
+    <meta property="og:description" content="Una aplicación web ligera para laptops y celulares viejos.">
+    <meta property="og:url" content="https://tu-dominio.com">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Mi Super App de Items">
+    <meta name="twitter:description" content="Una aplicación web ligera para laptops y celulares viejos.">
+
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+</head>
+<body>
+    <header class="hero is-info">
+        <div class="hero-body has-text-centered">
+            <p class="title">Lista de Tareas</p>
+            <p class="subtitle">Gestión de Items para dispositivos antiguos</p>
+        </div>
+    </header>
+
+    <main class="container is-max-desktop my-5">
+        <section class="box mb-5">
+            <h2 class="title is-4">Agregar un nuevo Item</h2>
+            <form id="addItemForm" action="/items" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="field">
+                    <label class="label">Nombre</label>
+                    <div class="control">
+                        <input class="input" type="text" name="name" placeholder="Nombre del item" required maxlength="100">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Descripción</label>
+                    <div class="control">
+                        <textarea class="textarea" name="description" placeholder="Descripción del item" maxlength="255"></textarea>
+                    </div>
+                </div>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="button is-primary" type="submit">Agregar Item</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section class="box">
+            <h2 class="title is-4">Mis Items</h2>
+            <% if (items && items.length > 0) { %>
+                <div id="itemsList" class="list">
+                    <% items.forEach(item => { %>
+                        <div class="list-item box is-flex is-justify-content-space-between is-align-items-center mb-3">
+                            <div>
+                                <p class="is-size-5 has-text-weight-bold"><%= item.name %></p>
+                                <p class="has-text-grey-dark"><%= item.description %></p>
+                            </div>
+                            <div class="is-flex is-align-items-center">
+                               <button class="button is-link is-small mr-2 edit-btn" data-id="<%= item.id %>">Editar</button>
+                                <form class="deleteForm" action="/items/delete/<%= item.id %>" method="POST" style="display:inline;">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <button class="button is-danger is-small" type="submit">Eliminar</button>
+                                </form>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <div class="notification is-info is-light">
+                    No hay items para mostrar. ¡Agrega uno!
+                </div>
+            <% } %>
+        </section>
+
+        <section id="editFormContainer" class="box my-5 is-hidden"></section>
+
+    </main>
+
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong>Mi Super App</strong>
+            </p>
+        </div>
+    </footer>
+
+    
+
+    <script>
+
+     const itemsList = document.querySelector('#itemsList');
+    const editFormContainer = document.querySelector('#editFormContainer');
+
+    itemsList.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('edit-btn')) {
+            const itemId = e.target.getAttribute('data-id');
+            editFormContainer.classList.remove('is-hidden');
+            
+            try {
+                const response = await fetch(`/items/api/${itemId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const item = result.item;
+                    const csrfToken = result.csrfToken;
+
+                    editFormContainer.innerHTML = `
+                        <h2 class="title is-4">Editar Item</h2>
+                        <form id="editItemForm" action="/items/update-ajax/${item.id}" method="POST">
+                            <input type="hidden" name="_csrf" value="${csrfToken}">
+                            <div class="field">
+                                <label class="label">Nombre</label>
+                                <div class="control">
+                                    <input class="input" type="text" name="name" value="${item.name}" required maxlength="100">
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">Descripción</label>
+                                <div class="control">
+                                    <textarea class="textarea" name="description" maxlength="255">${item.description}</textarea>
+                                </div>
+                            </div>
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <button class="button is-primary" type="submit">Actualizar</button>
+                                </div>
+                                <div class="control">
+                                    <button class="button is-light cancel-edit-btn" type="button">Cancelar</button>
+                                </div>
+                            </div>
+                        </form>
+                    `;
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Ocurrió un error al cargar el item para edición.');
+            }
+        }
+    });
+
+    // Manejar el envío del formulario de edición (Delegación de eventos)
+    editFormContainer.addEventListener('submit', async (e) => {
+        if (e.target.id === 'editItemForm') {
+            e.preventDefault();
+
+            const form = e.target;
+            const action = form.getAttribute('action');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': data._csrf
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+
+                if (result.success) {
+                    editFormContainer.classList.add('is-hidden');
+                    // Recargar la lista de ítems para ver los cambios
+                    window.location.reload(); 
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Ocurrió un error al actualizar el item.');
+            }
+        }
+    });
+
+    // Manejar el botón de Cancelar
+    editFormContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('cancel-edit-btn')) {
+            editFormContainer.classList.add('is-hidden');
+        }
+    });
+
+    // Referencia a los elementos HTML
+    const addItemForm = document.querySelector('#addItemForm');
+
+
+    // Función para manejar el envío del formulario de agregar item
+    addItemForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Detiene la recarga de la página
+        
+        const formData = new FormData(addItemForm);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch('/items', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': data._csrf // Envía el token CSRF
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // Si la operación fue exitosa, actualiza la lista de la página
+                const newItemHtml = `
+                    <div class="list-item box is-flex is-justify-content-space-between is-align-items-center mb-3">
+                        <div>
+                            <p class="is-size-5 has-text-weight-bold">${result.name}</p>
+                            <p class="has-text-grey-dark">${result.description}</p>
+                        </div>
+                        <div class="is-flex is-align-items-center">
+                            <a href="/items/edit/${result.id}" class="button is-link is-small mr-2">Editar</a>
+                            <form action="/items/delete/${result.id}" method="POST" class="deleteForm" style="display:inline;">
+                                <input type="hidden" name="_csrf" value="${data._csrf}">
+                                <button class="button is-danger is-small" type="submit">Eliminar</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                itemsList.insertAdjacentHTML('beforeend', newItemHtml);
+                addItemForm.reset(); // Limpia el formulario
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Ocurrió un error al agregar el item.');
+        }
+    });
+
+    // Función para manejar la eliminación de items (delegación de eventos)
+    itemsList.addEventListener('submit', async (e) => {
+        if (e.target.classList.contains('deleteForm')) {
+            e.preventDefault();
+            const form = e.target;
+            const action = form.getAttribute('action');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': data._csrf
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    form.closest('.list-item').remove();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Ocurrió un error al eliminar el item.');
+            }
+        }
+    });
+
+</script>
+</body>
+</html>
