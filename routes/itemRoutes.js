@@ -28,7 +28,7 @@ router.get('/items/edit/:id', csrfProtection, (req, res) => {
     itemController.getEditItem(req, res, req.csrfToken());
 });
 
-router.post('/items/delete/:id', csrfProtection, itemController.deleteItemAjax);
+router.post('/items/delete/:id', csrfProtection, updateAjaxLimiter, itemController.deleteItemAjax);
 
 // Nueva ruta para actualizar un item sin recargar la página
 router.post('/items/update-ajax/:id', csrfProtection, updateAjaxLimiter, itemController.updateItemAjax);
