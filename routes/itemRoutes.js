@@ -14,11 +14,18 @@ const updateAjaxLimiter = RateLimit({
   message: 'Too many update requests from this IP, please try again later.',
 });
 
+// Rate limiter for item JSON API requests: max 100 requests per 15 minutes per IP
+const apiGetLimiter = RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+});
+
 router.get('/', csrfProtection, (req, res) => {
     itemController.getAllItems(req, res, req.csrfToken());
 });
 
-router.get('/items/api/:id', csrfProtection, (req, res) => {
+router.get('/items/api/:id', csrfProtection, apiGetLimiter, (req, res) => {
     itemController.getItemJson(req, res);
 });
 
