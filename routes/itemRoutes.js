@@ -22,7 +22,7 @@ router.get('/items/api/:id', csrfProtection, (req, res) => {
     itemController.getItemJson(req, res);
 });
 
-router.post('/items', csrfProtection, itemController.addItemAjax);
+router.post('/items', csrfProtection, updateAjaxLimiter, itemController.addItemAjax);
 
 router.get('/items/edit/:id', csrfProtection, updateAjaxLimiter, (req, res) => {
     itemController.getEditItem(req, res, req.csrfToken());
