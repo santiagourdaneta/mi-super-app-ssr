@@ -24,7 +24,7 @@ router.get('/items/api/:id', csrfProtection, (req, res) => {
 
 router.post('/items', csrfProtection, itemController.addItemAjax);
 
-router.get('/items/edit/:id', csrfProtection, (req, res) => {
+router.get('/items/edit/:id', csrfProtection, updateAjaxLimiter, (req, res) => {
     itemController.getEditItem(req, res, req.csrfToken());
 });
 
